@@ -1,0 +1,25 @@
+{
+  "board_model": "DIO-8/8B-UBT",
+  "board_id_switch": 0,
+  "start_channel": 0,
+  "goal_channel": 1,
+  "debounce_ms": 300,
+  "poll_interval_ms": 10,
+  "credentials_path": "credentials.json",
+  "templates": {
+    "format1": {
+      "name": "通常大会用",
+      "template_spreadsheet_id": "12x-XQ-yB5W_Wuxb-QFyabWXYksUgNu7gS-5LRigJRZ8"
+    },
+    "format2": {
+      "name": "阪名戦用",
+      "template_spreadsheet_id": "1Dz-G1fRGqPZ1XwV_OYQNbgL-SsdWwmFfn9ftQmz22DE"
+    },
+    "format3": {
+      "name": "練習会用",
+      "template_spreadsheet_id": "1iWq4z0QC-lbJkxZyoqZJoddChF029LvnPlODgN9Wfjg"
+    }
+  },
+  "pt_penalty_seconds": 5,
+  "datsurin_penalty_seconds": 5
+}

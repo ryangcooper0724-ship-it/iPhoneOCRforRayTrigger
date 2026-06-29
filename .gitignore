@@ -1,0 +1,7 @@
+credentials.json
+session.json
+gymkhana_records.db
+csv/
+__pycache__/
+*.pyc
+.venv/
