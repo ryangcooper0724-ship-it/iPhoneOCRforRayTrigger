@@ -1,5 +1,6 @@
 [importlinter]
 root_packages =
+    common
     sensor
     sheets
     storage
@@ -63,3 +64,15 @@ source_modules =
     ui
 forbidden_modules =
     sheets
+
+[importlinter:contract:common-is-pure]
+name = common（共通層・ハブ）は他のどの層にも依存してはならない（依存される側専用）
+type = forbidden
+source_modules =
+    common
+forbidden_modules =
+    sheets
+    storage
+    ui
+    sensor
+    timer

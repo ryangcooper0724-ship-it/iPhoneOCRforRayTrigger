@@ -105,7 +105,7 @@ def test_write_to_sheet_registers_new_bib_row():
 
 
 def test_write_to_sheet_dnf_writes_string_and_clears_counts():
-    from sheets.formatter import DNF_SECONDS
+    from common.time_format import DNF_SECONDS
     client, ws = make_client_with_bib_registered()
     write_to_sheet(client, "sheet-id", 12, DNF_SECONDS, pt_count=2, format="format1")
 

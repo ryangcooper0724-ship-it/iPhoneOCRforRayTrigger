@@ -14,8 +14,8 @@ import csv
 import os
 import threading
 
+from common.time_format import seconds_to_display
 from sheets import template_setup
-from sheets.formatter import seconds_to_display
 from sheets.uploader import FORMAT_RUN_SLOTS, BIB_COL
 
 HISTORY_HEADER = ["ゼッケン", "生タイム", "タイム", "ペナルティ", "日時"]

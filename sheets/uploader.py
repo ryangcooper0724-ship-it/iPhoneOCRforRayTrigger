@@ -9,7 +9,7 @@ from typing import Callable
 
 import gspread
 
-from sheets.formatter import is_dnf, is_mc
+from common.time_format import is_dnf, is_mc
 
 BIB_COL = 2  # B列: ゼッケン（全フォーマット共通）
 

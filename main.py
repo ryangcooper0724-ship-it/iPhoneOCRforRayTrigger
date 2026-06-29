@@ -12,7 +12,7 @@ from sensor.mock_driver import MockDriver
 from sensor.monitor import SensorMonitor
 from sensor.ydci_driver import YdciDriver
 from sheets import manager as sheets_manager
-from sheets.formatter import DNF_SECONDS, MC_SECONDS
+from common.time_format import DNF_SECONDS, MC_SECONDS
 from sheets.uploader import write_result
 from storage import csv_mirror
 from storage.local_store import LocalStore
