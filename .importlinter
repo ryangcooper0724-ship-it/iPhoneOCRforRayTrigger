@@ -1,0 +1,65 @@
+[importlinter]
+root_packages =
+    sensor
+    sheets
+    storage
+    timer
+    ui
+
+# 想定する依存方向（上ほど上位/具体的、下ほど基盤的）：
+#   main(エントリーポイント、全てを参照可)
+#     -> ui    (画面)
+#     -> sheets(Googleスプレッドシート連携)
+#     -> storage(ローカル保存。timerには依存してよい)
+#     -> sensor(センサー。完全に独立)
+#     -> timer (計時ロジック。完全に独立)
+# sensor/timerは最も基盤的な層で、互いにも他層にも依存しない。
+# storageはtimerにのみ依存してよいが、sheets/ui/sensorをimportしてはならない（依存の逆転を禁止）。
+
+[importlinter:contract:storage-no-upward]
+name = storageはsheets/ui/sensorに依存してはならない（timerへの依存は許可）
+type = forbidden
+source_modules =
+    storage
+forbidden_modules =
+    sheets
+    ui
+    sensor
+
+[importlinter:contract:sensor-independent]
+name = sensorはsheets/storage/ui/timerに依存してはならない（完全に独立した層）
+type = forbidden
+source_modules =
+    sensor
+forbidden_modules =
+    sheets
+    storage
+    ui
+    timer
+
+[importlinter:contract:timer-independent]
+name = timerはsheets/storage/ui/sensorに依存してはならない（完全に独立した層）
+type = forbidden
+source_modules =
+    timer
+forbidden_modules =
+    sheets
+    storage
+    ui
+    sensor
+
+[importlinter:contract:sheets-no-ui]
+name = sheets（ビジネスロジック層）はui（Tkinter画面層）に依存してはならない
+type = forbidden
+source_modules =
+    sheets
+forbidden_modules =
+    ui
+
+[importlinter:contract:ui-no-sheets]
+name = ui（画面層）はsheets（Googleスプレッドシート連携層）に依存してはならない
+type = forbidden
+source_modules =
+    ui
+forbidden_modules =
+    sheets
