@@ -9,9 +9,8 @@ import datetime
 import json
 import os
 import re
-import tkinter as tk
 from dataclasses import asdict, dataclass
-from tkinter import messagebox, simpledialog
+from typing import Callable
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -224,72 +223,34 @@ def create_new_session(
     return session
 
 
-def _prompt_format_choice(config: dict, root: tk.Tk) -> str:
-    """新規大会開始時に、使用するスプレッドシートのフォーマットを選んでもらう。
-
-    config.jsonのtemplates配下に定義されたフォーマット名をボタンとして表示する。
-    """
-    templates = config.get("templates", {})
-    format_keys = list(templates.keys()) or ["format1"]
-
-    dialog = tk.Toplevel(root)
-    dialog.title("フォーマット選択")
-    dialog.resizable(False, False)
-    tk.Label(dialog, text="使用するスプレッドシートのフォーマットを選んでください", padx=20, pady=10).pack()
-
-    choice = {"value": None}
-
-    def pick(key: str) -> None:
-        choice["value"] = key
-        dialog.destroy()
-
-    for key in format_keys:
-        label = templates.get(key, {}).get("name", key)
-        tk.Button(dialog, text=label, width=28, command=lambda k=key: pick(k)).pack(padx=20, pady=5)
-
-    dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
-    dialog.grab_set()
-    dialog.wait_window()
-    return choice["value"] or format_keys[0]
-
-
-def start_session(config: dict, base_dir: str, client: gspread.Client | None = None) -> tuple[Session, bool]:
+def start_session(
+    config: dict, base_dir: str,
+    prompt_session_start: Callable[[dict, str | None, str | None], tuple[bool, str | None, str | None]],
+    client: gspread.Client | None = None,
+) -> tuple[Session, bool]:
     """アプリ起動時に呼ぶ。session.jsonの有無に応じて再接続/新規をダイアログで確認する。
 
-    新規の場合はフォーマット（templates配下のキー）も選んでもらう。
-    既存のTkルートが無い場合は一時的に作成し、終了後に破棄する。
+    ダイアログ表示自体はUI層の責務のため、prompt_session_start（呼び出し側がui.session_dialogs.
+    prompt_session_startを渡す想定）に委譲する。新規の場合はフォーマット（templates配下のキー）も
+    選んでもらう。
     戻り値: (session, is_new_session)。is_new_sessionは新規大会として開始した場合にTrue
     （呼び出し側はこれを見て、ローカルの当日履歴をリセットするかどうか判断する）。
     """
     session_path = os.path.join(base_dir, "session.json")
     existing = load_session(session_path)
 
-    temp_root = None
-    if tk._default_root is None:
-        temp_root = tk.Tk()
-        temp_root.withdraw()
-    root = tk._default_root
+    reconnect, format_key, event_name = prompt_session_start(
+        config,
+        existing.event_name if existing is not None else None,
+        existing.date if existing is not None else None,
+    )
+    if reconnect:
+        return existing, False
 
-    try:
-        if existing is not None:
-            reconnect = messagebox.askyesno(
-                "前回の大会への再接続",
-                f"前回の大会「{existing.event_name}」（{existing.date}）に再接続しますか？\n"
-                "「いいえ」を選ぶと新規の大会として開始します。",
-            )
-            if reconnect:
-                return existing, False
+    if not event_name or not event_name.strip():
+        raise SessionStartCancelled("大会名が入力されなかったため、セッションを開始できません")
 
-        format_key = _prompt_format_choice(config, root)
-
-        event_name = simpledialog.askstring("大会名", "大会名を入力してください:")
-        if not event_name or not event_name.strip():
-            raise SessionStartCancelled("大会名が入力されなかったため、セッションを開始できません")
-
-        session = create_new_session(
-            event_name.strip(), config, base_dir, session_path, client=client, format_key=format_key,
-        )
-        return session, True
-    finally:
-        if temp_root is not None:
-            temp_root.destroy()
+    session = create_new_session(
+        event_name.strip(), config, base_dir, session_path, client=client, format_key=format_key or "format1",
+    )
+    return session, True

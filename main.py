@@ -20,6 +20,7 @@ from timer.lap_timer import parse_time
 from timer.run_manager import RunManager
 from timer.waiting_list import WaitingList
 from ui.main_window import MainWindow
+from ui.session_dialogs import prompt_session_start
 
 BASE_DIR = resolve_base_dir(__file__, levels_up=0)
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
@@ -130,7 +131,9 @@ def main() -> None:
         nonlocal sheets_client, session
         try:
             client = sheets_manager.build_client(config, BASE_DIR)
-            new_session, is_new_session = sheets_manager.start_session(config, BASE_DIR, client=client)
+            new_session, is_new_session = sheets_manager.start_session(
+                config, BASE_DIR, prompt_session_start, client=client,
+            )
             sheets_client = client
             session = new_session
             message = f"接続済み: {session.event_name}（{session.spreadsheet_url}）"
