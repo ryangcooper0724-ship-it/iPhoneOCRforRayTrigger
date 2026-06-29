@@ -14,9 +14,8 @@ import csv
 import os
 import threading
 
-from common.sheet_schema import BIB_COL, FORMAT_RUN_SLOTS
+from common.sheet_schema import BIB_COL, FORMAT1_HEADER, FORMAT2_HEADER, FORMAT3_RUN_COUNT, FORMAT_RUN_SLOTS
 from common.time_format import seconds_to_display
-from sheets import template_setup
 
 HISTORY_HEADER = ["ゼッケン", "生タイム", "タイム", "ペナルティ", "日時"]
 
@@ -48,13 +47,13 @@ def create_history_csv(csv_path: str) -> None:
 def sheet_mirror_header(format_key: str) -> list[str]:
     """フォーマットに応じた、Sheets側の「タイム表」と同じ列構成のヘッダーを返す。"""
     if format_key == "format2":
-        return list(template_setup.FORMAT2_HEADER)
+        return list(FORMAT2_HEADER)
     if format_key == "format3":
         header = ["順位", "ゼッケン", "氏名", "車両形式"]
-        for i in range(1, template_setup.FORMAT3_RUN_COUNT + 1):
+        for i in range(1, FORMAT3_RUN_COUNT + 1):
             header += [f"{i}本目", "P", "D"]
         return header
-    return list(template_setup.FORMAT1_HEADER)
+    return list(FORMAT1_HEADER)
 
 
 def sheet_mirror_path_for(base_path: str, sheet_name: str | None) -> str:

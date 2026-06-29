@@ -31,6 +31,8 @@ from functools import wraps
 import gspread
 from google.oauth2.service_account import Credentials
 
+from common.sheet_schema import FORMAT1_HEADER, FORMAT2_HEADER, FORMAT3_RUN_COUNT
+
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -71,18 +73,9 @@ for _cls, _methods in (
             _wrapped._retry_wrapped = True
             setattr(_cls, _name, _wrapped)
 
-FORMAT1_HEADER = [
-    "順位", "ゼッケン", "氏名", "所属クラブ", "参加車両名", "車両形式",
-    "1本目", "P", "D", "2本目", "P", "D", "ベスト", "トップとの差",
-]
-FORMAT2_HEADER = [
-    "順位", "ゼッケン", "氏名", "所属クラブ", "参加車両名", "車両形式",
-    "練習走行", "P", "D", "1本目", "P", "D", "2本目", "P", "D", "ベスト", "トップとの差",
-]
 ENTRY_LIST_HEADER = ["ゼッケン", "氏名", "車種", "参加車両名", "所属クラブ"]
 
 DEFAULT_ENTRY_ROWS = 60
-FORMAT3_RUN_COUNT = 15
 
 # PT・脱輪1件あたりの秒数を読むエントリーリスト上のセル
 PT_SECONDS_CELL = "エントリーリスト!$H$3"

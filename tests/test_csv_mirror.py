@@ -41,15 +41,15 @@ def test_sheet_mirror_path_for_inserts_suffix():
 
 
 def test_sheet_mirror_header_format1_matches_template():
-    from sheets import template_setup
-    assert csv_mirror.sheet_mirror_header("format1") == list(template_setup.FORMAT1_HEADER)
+    from common.sheet_schema import FORMAT1_HEADER
+    assert csv_mirror.sheet_mirror_header("format1") == list(FORMAT1_HEADER)
 
 
 def test_sheet_mirror_header_format3_has_run_columns():
-    from sheets import template_setup
+    from common.sheet_schema import FORMAT3_RUN_COUNT
     header = csv_mirror.sheet_mirror_header("format3")
     assert header[:4] == ["順位", "ゼッケン", "氏名", "車両形式"]
-    assert len(header) == 4 + template_setup.FORMAT3_RUN_COUNT * 3
+    assert len(header) == 4 + FORMAT3_RUN_COUNT * 3
     assert header[4:7] == ["1本目", "P", "D"]
 
 
