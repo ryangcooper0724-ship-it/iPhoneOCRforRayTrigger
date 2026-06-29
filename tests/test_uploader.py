@@ -7,7 +7,8 @@ write_to_sheetが「同じセルに同じ値を書く」ことを保証する。
 
 import pytest
 
-from sheets.uploader import write_result, write_to_sheet, FORMAT_RUN_SLOTS, BIB_COL
+from common.sheet_schema import BIB_COL, FORMAT_RUN_SLOTS
+from sheets.uploader import write_result, write_to_sheet
 
 
 class FakeCell:
