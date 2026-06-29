@@ -6,8 +6,8 @@ https://www.y2c.co.jp/ub/ub_dio88/python/
 
 import ctypes
 import os
-import sys
 
+from common.paths import resolve_base_dir
 from sensor.driver_base import SensorDriverBase
 
 YDCI_RESULT_SUCCESS = 0
@@ -31,11 +31,7 @@ class YdciDriver(SensorDriverBase):
     @staticmethod
     def _default_dll_path() -> str:
         # main.py（exe化時はexe本体）と同じフォルダにYdci.dllを置く前提。
-        # PyInstaller onefile実行時は__file__が一時展開フォルダを指すため使えない。
-        if getattr(sys, "frozen", False):
-            base_dir = os.path.dirname(os.path.abspath(sys.executable))
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base_dir = resolve_base_dir(__file__, levels_up=1)
         return os.path.join(base_dir, "Ydci.dll")
 
     @property

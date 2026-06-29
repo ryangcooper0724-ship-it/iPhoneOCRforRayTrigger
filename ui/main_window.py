@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from typing import Callable
 
+from common.paths import resolve_base_dir, resolve_bundled_resource_dir
 from sensor.mock_driver import MockDriver
 from storage.local_store import LocalStore
 from timer.lap_timer import TimerState, format_time, parse_time
@@ -18,19 +19,11 @@ from timer.run_manager import RunManager
 from version import APP_NAME, APP_VERSION, ORG_NAME
 
 # CSVは全てこのフォルダにまとめる（自動生成分も手動出力分も同じ場所）。
-# PyInstaller onefile実行時は__file__が一時展開フォルダを指すため、exe本体のフォルダを使う。
-if getattr(sys, "frozen", False):
-    _BASE_DIR = os.path.dirname(os.path.abspath(sys.executable))
-else:
-    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_BASE_DIR = resolve_base_dir(__file__, levels_up=1)
 _CSV_DIR = os.path.join(_BASE_DIR, "csv")
 
 # アイコンはPyInstallerの--add-dataで同梱し、onefile展開時はsys._MEIPASS配下から読む。
-# ソース実行時はプロジェクトルート直下のapp_icon.icoを使う。
-if getattr(sys, "frozen", False):
-    _ICON_PATH = os.path.join(getattr(sys, "_MEIPASS", _BASE_DIR), "app_icon.ico")
-else:
-    _ICON_PATH = os.path.join(_BASE_DIR, "app_icon.ico")
+_ICON_PATH = os.path.join(resolve_bundled_resource_dir(__file__, levels_up=1), "app_icon.ico")
 
 SLOT_LABELS = {"A": "枠A", "B": "枠B"}
 HISTORY_COLUMNS = ("bib", "raw_time", "time", "penalty", "recorded_at", "synced")

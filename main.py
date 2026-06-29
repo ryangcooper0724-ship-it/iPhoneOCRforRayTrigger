@@ -3,16 +3,16 @@
 import json
 import os
 import re
-import sys
 import threading
 import tkinter as tk
 import unicodedata
 
+from common.paths import resolve_base_dir
+from common.time_format import DNF_SECONDS, MC_SECONDS
 from sensor.mock_driver import MockDriver
 from sensor.monitor import SensorMonitor
 from sensor.ydci_driver import YdciDriver
 from sheets import manager as sheets_manager
-from common.time_format import DNF_SECONDS, MC_SECONDS
 from sheets.uploader import write_result
 from storage import csv_mirror
 from storage.local_store import LocalStore
@@ -21,12 +21,7 @@ from timer.run_manager import RunManager
 from timer.waiting_list import WaitingList
 from ui.main_window import MainWindow
 
-# PyInstaller onefile実行時は__file__が一時展開フォルダを指すため、
-# exe本体のフォルダ（config.json等の配置場所）はsys.executableから取る。
-if getattr(sys, "frozen", False):
-    BASE_DIR = os.path.dirname(os.path.abspath(sys.executable))
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = resolve_base_dir(__file__, levels_up=0)
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 DB_PATH = os.path.join(BASE_DIR, "gymkhana_records.db")
 
