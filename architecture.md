@@ -1,6 +1,18 @@
 # architecture.md
 
 ジムカーナ計測アプリ（RayTrigger）のファイル構成と依存関係のルール。
+アプリ自体の機能・セットアップ手順は[README.md](README.md)を参照。
+
+## 処理の流れ（main.pyが何をしているか）
+
+`main.py`の`main()`がアプリ全体を起動・結線するエントリーポイントで、概ね以下の順で進む。
+
+1. **起動**：`config.json`を読み、`build_driver()`で実機（`sensor.ydci_driver.YdciDriver`）への接続を試みる。失敗時は自動的に`sensor.mock_driver.MockDriver`にフォールバックする。
+2. **Sheets接続・セッション開始**：`sheets.manager.build_client()`でGoogle認証し、`sheets.manager.start_session()`で大会セッションを開始する。再接続確認・フォーマット選択・大会名入力のダイアログは`ui.session_dialogs.prompt_session_start`がコールバックとして渡され、そこで表示される。失敗（認証ファイル無し・ネット不通等）してもローカル保存のみで起動を継続する。
+3. **画面表示**：`ui.main_window.MainWindow`を生成し、センサー監視スレッド（`sensor.monitor.SensorMonitor`）を開始する。
+4. **計測中**：センサーがSTART/GOALを検知すると`main.py`内の`PendingResultQueue`に積まれ、画面に確認パネルが表示される。操作者がPT・脱輪件数を入力して確定（または自動確定）すると、`save_and_upload()`が呼ばれる。
+5. **保存・送信**：`save_and_upload()`はまず`storage.local_store.LocalStore`へ同期で保存し（ここで失われない）、続いて`storage.csv_mirror`でローカルCSVミラーを更新する。その後`_submit_record_to_sheets()`がバックグラウンドスレッドで`sheets.uploader.write_result()`を呼び、Googleスプレッドシートへ書き込む。
+6. **送信失敗時の復旧**：Sheets書き込みが失敗してもローカルDBには残っており、`sync_pending_records()`（「未送信を同期」ボタン）で未送信レコードだけをまとめて再送できる。`sheets_client`が起動時に確立できていなかった場合は、このボタンが`connect_sheets()`を再実行して接続からやり直す。
 
 ## プロジェクト構造
 
