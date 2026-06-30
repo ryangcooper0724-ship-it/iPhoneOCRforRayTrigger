@@ -5,3 +5,8 @@ csv/
 __pycache__/
 *.pyc
 .venv/
+build/
+dist/
+.import_linter_cache/
+.pytest_cache/
+*.db

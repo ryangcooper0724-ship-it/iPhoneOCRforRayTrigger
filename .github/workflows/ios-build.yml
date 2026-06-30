@@ -1,0 +1,53 @@
+name: Build BibScanner (unsigned IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios/BibScanner/**"
+      - ".github/workflows/ios-build.yml"
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios/BibScanner
+        run: xcodegen generate
+
+      - name: Build unsigned .app
+        working-directory: ios/BibScanner
+        run: |
+          xcodebuild \
+            -project BibScanner.xcodeproj \
+            -scheme BibScanner \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            clean build
+
+      - name: Package as unsigned .ipa
+        working-directory: ios/BibScanner
+        run: |
+          set -e
+          APP_PATH="build/Build/Products/Release-iphoneos/BibScanner.app"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r BibScanner-unsigned.ipa Payload
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BibScanner-unsigned-ipa
+          path: ios/BibScanner/BibScanner-unsigned.ipa
+          retention-days: 14

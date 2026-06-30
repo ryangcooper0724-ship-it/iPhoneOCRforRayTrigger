@@ -15,6 +15,7 @@
 - 大会フォーマット（通常大会用/阪名戦用/練習会用）ごとにテンプレートスプレッドシートを使い分け
 - 当日タイム履歴の確認・修正、CSVへの自動ミラーリング（Sheetsのバックアップ）
 - DNF / MC（マシン故障）/ 全体リセット
+- （任意）固定カメラ＋OCR（Tesseract）によるゼッケン番号の自動読み取り。スタート待機中に継続的に認識し、STARTセンサー検知と同時に直近の安定読み取り値をその枠のゼッケン欄へ自動入力する。タイムは引き続き光電管が絶対正で、ゼッケンはあくまで候補（最終確認はGOAL確認パネルで行う）
 
 ## 処理の流れ（概要）
 
@@ -55,7 +56,16 @@ pip install -r requirements.txt
 
 テンプレートスプレッドシートの新規作成手順は[README_sheets.md](README_sheets.md)を参照。
 
-### 4. config.json の設定
+### 4. （任意）OCRゼッケン認識を使う場合
+
+OCR機能を使わない場合は`config.json`の`ocr.enabled`を`false`にすれば、このセクションの作業は不要。
+
+1. Tesseract OCR本体をインストールする（Pythonの`pytesseract`はバインディングのみで、本体は別途インストールが必要）。Windowsの場合は[UB Mannheimビルド](https://github.com/UB-Mannheim/tesseract/wiki)のインストーラーを使うのが簡単。
+2. インストール先のパス（例: `C:\Program Files\Tesseract-OCR\tesseract.exe`）を`config.json`の`ocr.tesseract_cmd_path`に設定する。
+3. スタートライン用の固定カメラをPCに接続し、`config.json`の`ocr.camera_index`（通常は`0`）を確認する。
+4. 実カメラ・Tesseractがまだ無い開発機では、`ocr.engine`を`"mock"`にしておくとカメラ無しで動作確認できる（画面に表示される「OCRモック操作」パネルから読み取り結果を注入できる）。
+
+### 5. config.json の設定
 
 ```json
 {
@@ -72,15 +82,26 @@ pip install -r requirements.txt
     "format3": { "name": "練習会用", "template_spreadsheet_id": "..." }
   },
   "pt_penalty_seconds": 5,
-  "datsurin_penalty_seconds": 5
+  "datsurin_penalty_seconds": 5,
+  "ocr": {
+    "enabled": true,
+    "engine": "mock",
+    "camera_index": 0,
+    "tesseract_cmd_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "poll_interval_ms": 250,
+    "confirm_count": 3
+  }
 }
 ```
 
 - `templates`配下の各`template_spreadsheet_id`は、コピー元となるテンプレートスプレッドシートのURL `https://docs.google.com/spreadsheets/d/【ここ】/edit` の部分。起動時にフォーマットを選ぶと、このテンプレートが大会ごとにコピーされる（サービスアカウントがDrive容量を持たない場合はコピーせずテンプレート自体を使い回す）
 - `pt_penalty_seconds` / `datsurin_penalty_seconds` はPT・脱輪1件あたりの加算秒数
 - `start_channel` / `goal_channel` は実機確認後にチャンネルがずれていれば変更する
+- `ocr.enabled`を`false`にするとOCR機能自体を使わない。`true`でも画面上の「OCR自動読み取りを使う」トグルでいつでもON/OFFを切り替えられる
+- `ocr.engine`は`"tesseract"`（実カメラ＋Tesseract）または`"mock"`（テスト用エミュレーター）。実エンジンの初期化やカメラ接続に失敗した場合は自動的にモックへフォールバックする
+- `ocr.confirm_count`は「同じ読み取り結果が何回連続したら確定（ロック）するか」。停車中のブレを考慮して3回程度を推奨
 
-### 5. 起動
+### 6. 起動
 
 ```bash
 python main.py
@@ -89,6 +110,8 @@ python main.py
 ## モックモードでの動作確認
 
 DLLが見つからない開発PCでは自動的にモックモードになり、画面に「STARTセンサー発火」「GOALセンサー発火」ボタンが表示される。これをクリックすることで実機なしに一連の動作を確認できる。
+
+`ocr.engine`が`"mock"`（または実カメラ・Tesseract初期化に失敗した場合）は、「OCRモック操作」パネルから読み取らせたいゼッケン番号を注入できる。値を入力して「この値を読み取らせる」を押すと、実カメラ運用時と同様に数回（`ocr.confirm_count`）連続で読み取れた体で確定（ロック）され、その状態でSTARTセンサーを発火させると枠のゼッケン欄へ自動入力される。
 
 ## 実機での動作確認時の注意
 
@@ -126,6 +149,7 @@ gymkhana/
 ├── Ydci.dll                 各自配置
 ├── common/                  共通層（パス解決・列構成・タイム変換）
 ├── sensor/                  センサー層（実機/モックドライバ）
+├── ocr/                     OCRゼッケン認識層（実エンジン/モックエンジン）
 ├── timer/                   計時ロジック層
 ├── storage/                 ローカル保存層（SQLite・CSVミラー）
 ├── sheets/                  Googleスプレッドシート連携層

@@ -12,6 +12,7 @@ from common.time_format import DNF_SECONDS, MC_SECONDS
 from sensor.mock_driver import MockDriver
 from sensor.monitor import SensorMonitor
 from sensor.ydci_driver import YdciDriver
+from serial_input.bib_source import SerialBibSource
 from sheets import manager as sheets_manager
 from sheets.uploader import write_result
 from storage import csv_mirror
@@ -46,6 +47,35 @@ def build_driver(config: dict):
     mock_success, mock_message = mock.connect()
     combined_message = f"{message} → {mock_message}"
     return mock, combined_message, True
+
+
+def build_serial_bib_source(config: dict) -> tuple[SerialBibSource | None, str, None]:
+    """設定に従いESP32からのシリアル受信（SerialBibSource）を初期化する。
+
+    serial_input.enabled が false の場合はゼッケン自動入力機能自体を無効にする
+    （(None, メッセージ, None)を返す）。ポートが開けない場合もアプリ起動自体は
+    継続させる（実機ドライバ・旧OCRエンジンと同様のフォールバック方針）。
+
+    旧来のUSBカメラ＋Tesseract方式（ocr.bib_reader.BibReader）はコードとして
+    残しているが、本番運用では config.json の ocr.enabled=false により無効化し、
+    こちらのシリアル受信方式（iPhone Vision OCR → ESP32 → USBシリアル）に統一する。
+    戻り値の3要素目（モックエンジン相当）はUI側の互換シグネチャ維持のため常にNone。
+    """
+    serial_config = config.get("serial_input", {})
+    if not serial_config.get("enabled", False):
+        return None, "ゼッケン自動入力は無効です（config.jsonで未有効化）", None
+
+    try:
+        reader = SerialBibSource(
+            port=serial_config.get("port", "COM3"),
+            baudrate=serial_config.get("baudrate", 115200),
+            poll_interval_ms=serial_config.get("poll_interval_ms", 100),
+        )
+        status = f"ゼッケン自動入力: {serial_config.get('port', 'COM3')}を監視します"
+    except Exception as exc:
+        return None, f"ゼッケン自動入力の初期化に失敗しました: {exc}", None
+
+    return reader, status, None
 
 
 def build_penalty_text(pt_count: int, datsurin_count: int) -> str:
@@ -85,9 +115,10 @@ class PendingResultQueue:
 
     def __init__(self):
         self._lock = threading.Lock()
-        self._items: list[tuple[str, str, float, str]] = []  # (slot_id, bib_number, raw_elapsed_seconds, status)
+        # (slot_id, bib_number, raw_elapsed_seconds, status, pt_count, datsurin_count, mc_flag)
+        self._items: list[tuple[str, str, float, str, int, int, bool]] = []
 
-    def enqueue(self, item: tuple[str, str, float, str]) -> tuple[bool, int]:
+    def enqueue(self, item: tuple[str, str, float, str, int, int, bool]) -> tuple[bool, int]:
         """追加する。(これが新たに先頭になったか, 先頭の後ろに何件並んでいるか)を返す。"""
         with self._lock:
             became_current = len(self._items) == 0
@@ -95,7 +126,7 @@ class PendingResultQueue:
             remaining = len(self._items) - 1
             return became_current, remaining
 
-    def pop_current(self) -> tuple[str, str, float, str] | None:
+    def pop_current(self) -> tuple[str, str, float, str, int, int, bool] | None:
         """確認済みの先頭を取り除き、新しい先頭（無ければNone）を返す。"""
         with self._lock:
             if self._items:
@@ -111,6 +142,7 @@ def main() -> None:
     config = load_config()
 
     driver, driver_status, is_mock = build_driver(config)
+    ocr_reader, ocr_status, ocr_mock_engine = build_serial_bib_source(config)
     run_manager = RunManager()
     local_store = LocalStore(DB_PATH)
     waiting_list = WaitingList()
@@ -266,9 +298,16 @@ def main() -> None:
         """枠のタイマーとゼッケン欄を即座にリセットする。
 
         GOALして結果確認パネルに渡った直後、またはDNF確定直後に呼ぶ。
-        このタイミングで待機1のゼッケン番号があればそのまま入れる。無ければ空欄にする。
+        OCRモードONのときは次のゼッケンはSTART時にOCRから入るため待機リストは使わない。
+        OFFのときは待機1のゼッケン番号があればそのまま入れる。無ければ空欄にする。
         """
         run_manager.reset_slot(slot_id)
+        window.reset_slot_penalty_state(slot_id)
+
+        if window.is_ocr_mode_enabled():
+            window.set_bib_number(slot_id, "")
+            return
+
         next_bib = waiting_list.pop_next()
         if next_bib is not None:
             window.set_bib_number(slot_id, next_bib)
@@ -279,10 +318,14 @@ def main() -> None:
     def enqueue_finished_run(slot_id: str, raw_elapsed_seconds: float, status: str = "OK") -> None:
         """GOAL確定（OK）またはDNF確定の直後に呼ぶ。ゼッケンを確定時点でスナップショットしてから、
         結果確認待ちキューに積み、枠は即座にリセットする。
+
+        枠側で事前入力されていたPT・脱輪・ミスコースの値も、結果確認パネルの初期値として引き渡す
+        （確認パネル上でさらに修正・確定できるので、ここではあくまで初期値）。
         """
         bib_number = window.get_bib_number(slot_id)
         window.remember_bib(slot_id, bib_number)
-        item = (slot_id, bib_number, raw_elapsed_seconds, status)
+        pt_count, datsurin_count, mc_flag = window.get_slot_penalty_state(slot_id)
+        item = (slot_id, bib_number, raw_elapsed_seconds, status, pt_count, datsurin_count, mc_flag)
 
         became_current, remaining = pending_results.enqueue(item)
         if became_current:
@@ -328,6 +371,18 @@ def main() -> None:
             pt_count, datsurin_count,
         )
 
+        next_item = pending_results.pop_current()
+        if next_item is not None:
+            window.post_event("show_pending", (next_item, pending_results.remaining_after_current()))
+        else:
+            window.post_event("pending_cleared", None)
+
+    def on_discard_pending_result(slot_id: str) -> None:
+        """結果確認パネルの「リセット（記録なし）」用。確認待ちの1件を保存せずに削除する。
+
+        枠側の「リセット（記録なし）」（on_reset_slot）と異なり、こちらはGOAL済みで
+        既にキューに積まれている1件を、ローカルDB・Sheetsどちらにも記録せずに捨てる。
+        """
         next_item = pending_results.pop_current()
         if next_item is not None:
             window.post_event("show_pending", (next_item, pending_results.remaining_after_current()))
@@ -487,6 +542,7 @@ def main() -> None:
         on_manual_goal_trigger=handle_goal_trigger,
         on_waiting_list_changed=on_waiting_list_changed,
         on_confirm_result=on_confirm_result,
+        on_discard_pending=on_discard_pending_result,
         local_store=local_store,
         on_sync_pending=sync_pending_records,
         on_edit_history_record=on_edit_history_record,
@@ -498,10 +554,22 @@ def main() -> None:
         goal_channel=config["goal_channel"],
         is_format3=session is not None and session.format == "format3",
         on_am_pm_changed=handle_am_pm_changed,
+        ocr_available=ocr_reader is not None,
+        ocr_mock_engine=ocr_mock_engine,
+        ocr_reader=ocr_reader,
     )
+    window.set_ocr_status(ocr_status)
 
     def handle_start_trigger() -> None:
-        run_manager.handle_start_trigger()
+        """STARTセンサー検知時に呼ぶ。OCRモードONなら、停止中に確定済みのゼッケン候補
+        （BibReaderがロックしている値）をその枠へ即座に反映する。
+        """
+        slot_id = run_manager.handle_start_trigger()
+        if slot_id is not None and ocr_reader is not None and window.is_ocr_mode_enabled():
+            candidate = ocr_reader.get_locked_candidate()
+            if candidate:
+                frame = ocr_reader.get_locked_frame()
+                window.post_event("ocr_candidate", (slot_id, candidate, frame))
 
     def handle_error(exc: Exception) -> None:
         window.post_event("error", str(exc))
@@ -518,9 +586,14 @@ def main() -> None:
     )
     monitor.start()
 
+    if ocr_reader is not None:
+        ocr_reader.start()
+
     def on_close() -> None:
         monitor.stop()
         driver.close()
+        if ocr_reader is not None:
+            ocr_reader.stop()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)

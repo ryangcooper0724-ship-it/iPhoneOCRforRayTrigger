@@ -2,4 +2,4 @@
 
 APP_NAME = "RayTrigger"
 ORG_NAME = "TPGarage"
-APP_VERSION = "1.01"
+APP_VERSION = "2.00"

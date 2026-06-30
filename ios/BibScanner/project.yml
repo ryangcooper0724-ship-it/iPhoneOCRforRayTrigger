@@ -1,0 +1,33 @@
+name: BibScanner
+options:
+  bundleIdPrefix: com.example.bibscanner
+  deploymentTarget:
+    iOS: "16.0"
+
+targets:
+  BibScanner:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        excludes:
+          - "project.yml"
+          - "README.md"
+          - "*.ipa"
+    info:
+      path: Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.bibscanner
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        # CIでは無署名でビルドし、AltServer側で実機インストール時に署名する
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""

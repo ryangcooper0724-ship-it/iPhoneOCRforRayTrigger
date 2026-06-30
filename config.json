@@ -21,5 +21,20 @@
     }
   },
   "pt_penalty_seconds": 5,
-  "datsurin_penalty_seconds": 5
+  "datsurin_penalty_seconds": 5,
+  "ocr": {
+    "enabled": false,
+    "engine": "tesseract",
+    "camera_index": 2,
+    "tesseract_cmd_path": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "poll_interval_ms": 250,
+    "confirm_count": 3,
+    "min_confidence": 60.0
+  },
+  "serial_input": {
+    "enabled": true,
+    "port": "COM3",
+    "baudrate": 115200,
+    "poll_interval_ms": 100
+  }
 }

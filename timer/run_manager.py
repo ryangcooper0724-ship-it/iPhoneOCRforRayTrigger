@@ -42,6 +42,18 @@ class RunManager:
     def running_slots(self) -> list[str]:
         return [slot for slot in SLOT_IDS if self.lap_timers[slot].state == TimerState.RUNNING]
 
+    def running_order(self, slot_id: str) -> int | None:
+        """両枠が同時に走行中のとき、その枠が何番目に出走したか（1=先、2=後）を返す。
+
+        1台のみ走行中、またはslot_idが走行中でない場合はNone（順序を表示する意味がないため）。
+        GOAL対象は常に1（先に出走した方）になる。
+        """
+        running = self.running_slots()
+        if slot_id not in running or len(running) < 2:
+            return None
+        ordered = sorted(running, key=lambda s: self._start_sequence.get(s, 0))
+        return ordered.index(slot_id) + 1
+
     def set_bib(self, slot_id: str, bib_number: str) -> None:
         self.bib_numbers[slot_id] = bib_number
 

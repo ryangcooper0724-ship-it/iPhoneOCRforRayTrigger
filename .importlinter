@@ -1,7 +1,9 @@
 [importlinter]
 root_packages =
     common
+    ocr
     sensor
+    serial_input
     sheets
     storage
     timer
@@ -12,13 +14,14 @@ root_packages =
 #     -> ui    (画面)
 #     -> sheets(Googleスプレッドシート連携)
 #     -> storage(ローカル保存。timerには依存してよい)
+#     -> ocr   (OCRゼッケン認識。完全に独立)
 #     -> sensor(センサー。完全に独立)
 #     -> timer (計時ロジック。完全に独立)
-# sensor/timerは最も基盤的な層で、互いにも他層にも依存しない。
-# storageはtimerにのみ依存してよいが、sheets/ui/sensorをimportしてはならない（依存の逆転を禁止）。
+# ocr/sensor/timerは最も基盤的な層で、互いにも他層にも依存しない。
+# storageはtimerにのみ依存してよいが、sheets/ui/sensor/ocrをimportしてはならない（依存の逆転を禁止）。
 
 [importlinter:contract:storage-no-upward]
-name = storageはsheets/ui/sensorに依存してはならない（timerへの依存は許可）
+name = storageはsheets/ui/sensor/ocrに依存してはならない（timerへの依存は許可）
 type = forbidden
 source_modules =
     storage
@@ -26,9 +29,10 @@ forbidden_modules =
     sheets
     ui
     sensor
+    ocr
 
 [importlinter:contract:sensor-independent]
-name = sensorはsheets/storage/ui/timerに依存してはならない（完全に独立した層）
+name = sensorはsheets/storage/ui/timer/ocrに依存してはならない（完全に独立した層）
 type = forbidden
 source_modules =
     sensor
@@ -37,9 +41,35 @@ forbidden_modules =
     storage
     ui
     timer
+    ocr
+
+[importlinter:contract:ocr-independent]
+name = ocrはsheets/storage/ui/timer/sensorに依存してはならない（完全に独立した層）
+type = forbidden
+source_modules =
+    ocr
+forbidden_modules =
+    sheets
+    storage
+    ui
+    timer
+    sensor
+
+[importlinter:contract:serial-input-independent]
+name = serial_inputはsheets/storage/ui/timer/sensor/ocrに依存してはならない（完全に独立した層）
+type = forbidden
+source_modules =
+    serial_input
+forbidden_modules =
+    sheets
+    storage
+    ui
+    timer
+    sensor
+    ocr
 
 [importlinter:contract:timer-independent]
-name = timerはsheets/storage/ui/sensorに依存してはならない（完全に独立した層）
+name = timerはsheets/storage/ui/sensor/ocrに依存してはならない（完全に独立した層）
 type = forbidden
 source_modules =
     timer
@@ -48,6 +78,7 @@ forbidden_modules =
     storage
     ui
     sensor
+    ocr
 
 [importlinter:contract:sheets-no-ui]
 name = sheets（ビジネスロジック層）はui（Tkinter画面層）に依存してはならない
@@ -76,3 +107,5 @@ forbidden_modules =
     ui
     sensor
     timer
+    ocr
+    serial_input

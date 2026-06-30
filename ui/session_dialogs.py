@@ -66,6 +66,13 @@ def prompt_session_start(
             if reconnect:
                 return True, None, None
 
+            messagebox.showwarning(
+                "新規大会として開始",
+                "「いいえ」が選択されました。このまま大会名を入力すると新規の大会として開始され、"
+                "本日のローカル履歴がクリアされます。\n"
+                "続く大会名の入力をキャンセルすれば、何も変更せずに終了できます。",
+            )
+
         format_key = _prompt_format_choice(config, root)
         event_name = simpledialog.askstring("大会名", "大会名を入力してください:")
         return False, format_key, event_name
