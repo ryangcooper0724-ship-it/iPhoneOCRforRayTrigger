@@ -3,7 +3,7 @@
 /* オフライン運用のための完全キャッシュ。インストール時に全アセットを取得し、
    以降はキャッシュ優先で返す（現地でESP32 Wi-Fiに繋いだ後はインターネットが
    無い前提のため、CDNフェッチに頼らず同一オリジンの資産だけで完結させる）。 */
-const CACHE_NAME = "bib-scanner-v3";
+const CACHE_NAME = "bib-scanner-v4";
 const ASSETS = [
   "./",
   "./index.html",
