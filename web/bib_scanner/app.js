@@ -2,8 +2,8 @@
 
 /* ===== 設定（settingsPanelで上書き、localStorageに保存） ===== */
 const DEFAULT_CONFIG = {
-  url: "http://192.168.4.1/bib",
-  token: "change_me_too",
+  url: "https://192.168.4.1/bib",
+  token: "fbdd66962e25160e855b7b083e49e9d6",
   confirmCount: 3,
   minConfidence: 60, // 0-100 (Tesseract.jsのconfidenceと同じスケール)
   roiW: 0.5,

@@ -52,7 +52,12 @@
 
   <div id="settingsPanel">
     <h2>設定</h2>
-    <label>ESP32のURL（例: http://192.168.4.1/bib）
+    <p style="font-size:13px; opacity:0.85;">
+      初回のみ: <a href="raytrigocr-ca.crt" style="color:#ffd400;">ESP32証明書をインストール</a>
+      → 設定アプリで「プロファイルがダウンロード済み」をタップしてインストール
+      → 設定 → 一般 → 情報 → 証明書信頼設定 で RayTrigOCR を完全に信頼にする
+    </p>
+    <label>ESP32のURL（例: https://192.168.4.1/bib）
       <input id="cfgUrl" type="text">
     </label>
     <label>送信トークン（ESP32側 EXPECTED_TOKEN と一致させる）
